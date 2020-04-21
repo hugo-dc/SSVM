@@ -6,6 +6,8 @@
 #include "host/onnc/onncmodule.h"
 #endif
 
+#include <time.h>
+
 namespace SSVM {
 namespace ExpVM {
 
@@ -140,9 +142,16 @@ VM::runWasmFile(const AST::Module &Module, const std::string &Func,
   if (auto Res = ValidatorEngine.validate(Module); !Res) {
     return Unexpect(Res);
   }
+  struct timespec requestStart, requestEnd;
+  clock_gettime(CLOCK_REALTIME, &requestStart);
   if (auto Res = InterpreterEngine.instantiateModule(StoreRef, Module); !Res) {
     return Unexpect(Res);
   }
+  clock_gettime(CLOCK_REALTIME, &requestEnd);
+  double accum = ( requestEnd.tv_sec - requestStart.tv_sec )
+	  + ( requestEnd.tv_nsec - requestStart.tv_nsec )
+	  / 1E9;
+  printf("Instantiation time: %1fs", accum);
   if (auto Res = InterpreterEngine.invoke(StoreRef, Func, Params)) {
     return *Res;
   } else {
